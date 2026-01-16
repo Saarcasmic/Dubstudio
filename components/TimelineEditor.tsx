@@ -6,6 +6,7 @@ import { EditModal } from './EditModal';
 interface TimelineEditorProps {
   initialData: VideoAnalysisResult;
   onSegmentUpdate: (updatedSegments: Segment[]) => void;
+  onPreviewAudio: (speakerId: string, text: string) => Promise<string>;
 }
 
 interface TimelineSegmentProps {
@@ -64,7 +65,7 @@ TimelineSegment.displayName = 'TimelineSegment';
 /**
  * Main Editor Component
  */
-export const TimelineEditor: React.FC<TimelineEditorProps> = ({ initialData, onSegmentUpdate }) => {
+export const TimelineEditor: React.FC<TimelineEditorProps> = ({ initialData, onSegmentUpdate, onPreviewAudio }) => {
   // 1. Data Integrity Boundary
   if (!initialData || !initialData.metadata || !Array.isArray(initialData.speakers)) {
     console.error('TimelineEditor: Invalid initialData received', initialData);
@@ -115,6 +116,12 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({ initialData, onS
   
   const totalWidth = Math.max(100, (duration * PIXELS_PER_SECOND) || 100);
   const editingSegment = segments.find(s => s.id === editingSegmentId);
+
+  // Helper to wrap the preview call with the current segment's speaker ID
+  const handlePreviewRequest = async (text: string) => {
+    if (!editingSegment) return "";
+    return onPreviewAudio(editingSegment.speaker_id, text);
+  }
 
   return (
     <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700 flex flex-col h-[500px]">
@@ -207,27 +214,49 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({ initialData, onS
         initialText={editingSegment?.text || ''}
         onClose={() => setEditingSegmentId(null)}
         onSave={handleSaveSegment}
+        onPreview={handlePreviewRequest}
       />
     </div>
   );
 };
 
-// ------------------------------------------------------------------
-// MOCK DATA FOR DEVELOPMENT
-// ------------------------------------------------------------------
 export const MOCK_DATA: VideoAnalysisResult = {
   metadata: {
-    total_duration: 12.5,
-    detected_language: "English",
+    total_duration: 15.0,
+    detected_language: 'English',
   },
   speakers: [
-    { id: "spk_1", name: "Host (John)", voice_tone: "Energetic, fast-paced" },
-    { id: "spk_2", name: "Guest (Sarah)", voice_tone: "Calm, thoughtful" },
+    { id: 'spk_1', name: 'Interviewer', voice_tone: 'Professional, Inquisitive' },
+    { id: 'spk_2', name: 'Expert', voice_tone: 'Calm, Knowledgeable' },
   ],
   segments: [
-    { id: "1", speaker_id: "spk_1", start_time: 0.5, end_time: 3.0, text: "Welcome back to the studio! Today we have a special guest." },
-    { id: "2", speaker_id: "spk_2", start_time: 3.5, end_time: 6.0, text: "Thanks for having me, John. It's great to be here." },
-    { id: "3", speaker_id: "spk_1", start_time: 6.5, end_time: 9.0, text: "So, tell us about your new project using AI." },
-    { id: "4", speaker_id: "spk_2", start_time: 9.2, end_time: 12.0, text: "Well, it basically automates the entire dubbing process using Gemini." },
-  ]
+    {
+      id: 'seg_1',
+      speaker_id: 'spk_1',
+      start_time: 0.5,
+      end_time: 2.5,
+      text: 'Welcome to the future of video editing.',
+    },
+    {
+      id: 'seg_2',
+      speaker_id: 'spk_2',
+      start_time: 3.0,
+      end_time: 6.5,
+      text: 'It is truly remarkable what we can achieve now with AI.',
+    },
+    {
+      id: 'seg_3',
+      speaker_id: 'spk_1',
+      start_time: 7.0,
+      end_time: 9.0,
+      text: 'Can you explain how the voice cloning works?',
+    },
+    {
+      id: 'seg_4',
+      speaker_id: 'spk_2',
+      start_time: 9.5,
+      end_time: 14.0,
+      text: 'We extract audio features and map them to a latent space.',
+    },
+  ],
 };

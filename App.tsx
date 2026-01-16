@@ -4,12 +4,17 @@ import { SpeakerList } from './components/SpeakerList';
 import { TimelineEditor, MOCK_DATA } from './components/TimelineEditor';
 import { analyzeVideo } from './services/VideoAnalyzer';
 import { VideoAnalysisResult, Segment, AnalysisStatus } from './types';
+import { useVoiceSystem } from './hooks/useVoiceSystem';
+import { Mic, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<VideoAnalysisResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Hook into the Voice System
+  const { isReady, progress, synthesizeSegment } = useVoiceSystem(videoFile, analysisResult);
 
   const handleFileSelect = async (file: File) => {
     setVideoFile(file);
@@ -31,7 +36,7 @@ const App: React.FC = () => {
 
   // Handler for loading mock data for testing UI without API calls
   const loadMockData = () => {
-    setVideoFile(null);
+    setVideoFile(null); // Triggers Mock Mode in useVoiceSystem
     setAnalysisResult(MOCK_DATA);
     setStatus(AnalysisStatus.COMPLETED);
   };
@@ -45,6 +50,10 @@ const App: React.FC = () => {
       };
     });
   }, []);
+
+  const handlePreviewAudio = async (speakerId: string, text: string): Promise<string> => {
+    return await synthesizeSegment(speakerId, text);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-indigo-500 selection:text-white">
@@ -142,20 +151,24 @@ const App: React.FC = () => {
           {/* Bottom Section: Timeline Editor */}
           {status === AnalysisStatus.COMPLETED && analysisResult && (
             <div className="mt-4">
+                {/* Voice System Status Bar */}
+               <div className="mb-4 flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${isReady ? 'bg-green-900/50 text-green-400' : 'bg-indigo-900/50 text-indigo-400'}`}>
+                       {isReady ? <Mic size={18} /> : <Loader2 size={18} className="animate-spin" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{isReady ? 'Voice Engine Ready' : 'Initializing Voice Engine...'}</p>
+                      <p className="text-xs text-gray-400">{progress}</p>
+                    </div>
+                  </div>
+               </div>
+
                <TimelineEditor 
                  initialData={analysisResult}
                  onSegmentUpdate={handleSegmentUpdate}
+                 onPreviewAudio={handlePreviewAudio}
                />
-               
-               <div className="mt-6 flex justify-end">
-                  <button 
-                    className="py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
-                    onClick={() => alert("Voice cloning phase not implemented in this demo.")}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                    Start Voice Cloning
-                  </button>
-               </div>
             </div>
           )}
         </div>
