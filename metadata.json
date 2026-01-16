@@ -1,0 +1,5 @@
+{
+  "name": "DubStudio AI",
+  "description": "A client-side video dubbing studio using Gemini 3 Pro for analysis and MiniMax for voice cloning.",
+  "requestFramePermissions": []
+}
